@@ -2,16 +2,61 @@
 <html>
 <head>
   <title>MyRoute</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-    input, button { padding: 10px; margin: 5px; font-size: 16px; }
+    body { margin: 0; font-family: sans-serif; }
+    #map { height: 70vh; width: 100%; }
+    .controls { padding: 1rem; text-align: center; background: #f8f9fa; }
+    input, button { padding: 10px; margin: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
   </style>
 </head>
 <body>
-  <h1>MyRoute</h1>
-  <input id="start" placeholder="From (e.g. NYC)">
-  <input id="end" placeholder="To (e.g. Boston)">
-  <button onclick="alert('Planning route from ' + start.value + ' to ' + end.value + '!')">Go</button>
-  <p>Real maps coming soon.</p>
+  <div class="controls">
+    <h1>MyRoute</h1>
+    <input id="start" placeholder="From (e.g. New York, NY)" style="width: 300px;">
+    <input id="end" placeholder="To (e.g. Boston, MA)" style="width: 300px;">
+    <button onclick="calcRoute()">Plan Route</button>
+  </div>
+  <div id="map"></div>
+
+  <script>
+    let map, directionsService, directionsRenderer;
+
+    function initMap() {
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer();
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 40.7128, lng: -74.0060 },
+        zoom: 8,
+      });
+      directionsRenderer.setMap(map);
+    }
+
+    function calcRoute() {
+      const start = document.getElementById("start").value;
+      const end = document.getElementById("end").value;
+      if (!start || !end) return alert("Please enter both locations!");
+
+      const request = {
+        origin: start,
+        destination: end,
+        travelMode: 'DRIVING'
+      };
+      directionsService.route(request, (result, status) => {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(result);
+        } else {
+          alert("Route failed: " + status);
+        }
+      });
+    }
+  </script>
+
+  <!-- GET YOUR FREE API KEY HERE: https://console.cloud.google.com/ -->
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&callback=initMap">
+  </script>
 </body>
 </html>
