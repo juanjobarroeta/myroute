@@ -11,6 +11,32 @@
     button { background: #007bff; color: white; border: none; cursor: pointer; }
     button:hover { background: #0056b3; }
   </style>
+  <script>
+  let darkMode = false;
+  let showTraffic = false;
+  let waypoints = []; // for future multiple stops
+
+  function toggleDark() {
+    darkMode = !darkMode;
+    const darkStyles = [
+      { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ color: "#304156" }] },
+      { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+      { featureType: "water", stylers: [{ color: "#17263c" }] }
+    ];
+        map.setOptions({ styles: darkMode ? darkStyles : null });
+  }
+  function toggleTraffic() {
+    showTraffic = !showTraffic;
+    if (showTraffic) {
+      new google.maps.TrafficLayer().setMap(map);
+    } else {
+      map.overlayMapTypes.clear();
+    }
+  }
+</script>
 </head>
 <body>
   <div class="controls">
@@ -18,6 +44,14 @@
     <input id="start" placeholder="From (e.g. New York, NY)" style="width: 300px;">
     <input id="end" placeholder="To (e.g. Boston, MA)" style="width: 300px;">
     <button onclick="calcRoute()">Plan Route</button>
+    <div style="text-align:center; margin:15px 0;">
+  <button onclick="toggleDark()" style="margin:5px; padding:10px 20px; font-size:16px; background:#333; color:white; border:none; border-radius:5px; cursor:pointer;">
+    🌙 Dark Mode
+  </button>
+  <button onclick="toggleTraffic()" style="margin:5px; padding:10px 20px; font-size:16px; background:#d35400; color:white; border:none; border-radius:5px; cursor:pointer;">
+    🚦 Live Traffic
+  </button>
+</div>
   </div>
   <div id="map"></div>
 
