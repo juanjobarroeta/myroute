@@ -4,12 +4,53 @@
   <title>MyRoute</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { margin: 0; font-family: sans-serif; }
-    #map { height: 70vh; width: 100%; }
-    .controls { padding: 1rem; text-align: center; background: #f8f9fa; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #map { height: 65vh; width: 100%; }
+    .controls { padding: 1rem; text-align: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     input, button { padding: 10px; margin: 5px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
-    button { background: #007bff; color: white; border: none; cursor: pointer; }
-    button:hover { background: #0056b3; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; transition: all 0.3s; }
+    button:hover { background: #0056b3; transform: translateY(-1px); }
+    
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; max-width: 1400px; margin: 0 auto; }
+    .header h1 { margin: 0; }
+    .auth-section { display: flex; gap: 10px; align-items: center; }
+    
+    /* Modal Styles */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; padding: 30px; border-radius: 10px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .modal-content h2 { margin-top: 0; }
+    .modal-content input { width: 100%; margin: 10px 0; padding: 12px; box-sizing: border-box; }
+    .modal-content button { width: 100%; padding: 12px; margin-top: 10px; }
+    .close-btn { float: right; font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; }
+    .close-btn:hover { color: #000; }
+    .error-msg { color: #dc3545; margin: 10px 0; }
+    .auth-toggle { margin-top: 15px; text-align: center; color: #666; }
+    .auth-toggle a { color: #007bff; text-decoration: none; }
+    
+    /* User Menu */
+    .user-menu { position: relative; display: none; }
+    .user-menu button { background: #28a745; }
+    .dropdown { display: none; position: absolute; right: 0; top: 100%; background: white; border: 1px solid #ddd; border-radius: 5px; margin-top: 5px; min-width: 150px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .dropdown a { display: block; padding: 10px 15px; color: #333; text-decoration: none; }
+    .dropdown a:hover { background: #f8f9fa; }
+    
+    /* Route Info */
+    .route-info { background: white; padding: 15px; margin: 10px auto; max-width: 800px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: none; }
+    .route-info h3 { margin-top: 0; }
+    
+    /* Saved Routes List */
+    .saved-routes-list { max-height: 400px; overflow-y: auto; }
+    .route-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .route-item:hover { background: #f8f9fa; }
+    .route-item h4 { margin: 0 0 5px 0; }
+    .route-item p { margin: 5px 0; color: #666; font-size: 14px; }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header { flex-direction: column; gap: 10px; }
+      input { width: 100% !important; max-width: 300px; }
+    }
   </style>
   <script>
   let darkMode = false;
@@ -40,23 +81,101 @@
 </head>
 <body>
   <div class="controls">
-    <h1>MyRoute</h1>
-    <input id="start" placeholder="From (e.g. New York, NY)" style="width: 300px;">
-    <input id="end" placeholder="To (e.g. Boston, MA)" style="width: 300px;">
-    <button onclick="calcRoute()">Plan Route</button>
-    <div style="text-align:center; margin:15px 0;">
-  <button onclick="toggleDark()" style="margin:5px; padding:10px 20px; font-size:16px; background:#333; color:white; border:none; border-radius:5px; cursor:pointer;">
-    🌙 Dark Mode
-  </button>
-  <button onclick="toggleTraffic()" style="margin:5px; padding:10px 20px; font-size:16px; background:#d35400; color:white; border:none; border-radius:5px; cursor:pointer;">
-    🚦 Live Traffic
-  </button>
-</div>
+    <div class="header">
+      <h1>🗺️ MyRoute</h1>
+      
+      <!-- Auth Buttons (shown when logged out) -->
+      <div id="authButtons" class="auth-section">
+        <button onclick="showAuthModal('login')">Login</button>
+        <button onclick="showAuthModal('register')" style="background: #28a745;">Sign Up</button>
+      </div>
+      
+      <!-- User Menu (shown when logged in) -->
+      <div id="userMenu" class="user-menu">
+        <button onclick="toggleUserDropdown()">👤 <span id="userName"></span> ▼</button>
+        <div id="userDropdown" class="dropdown">
+          <a href="#" onclick="showSavedRoutes(); return false;">My Routes</a>
+          <a href="#" onclick="handleLogout(); return false;">Logout</a>
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 15px;">
+      <input id="start" placeholder="From (e.g. New York, NY)" style="width: 300px;">
+      <input id="end" placeholder="To (e.g. Boston, MA)" style="width: 300px;">
+      <button onclick="calcRoute()">🔍 Plan Route</button>
+      <button id="saveRouteBtn" onclick="showSaveRouteModal()" style="background: #28a745; display: none;">💾 Save Route</button>
+    </div>
+    
+    <div style="text-align:center; margin:10px 0;">
+      <button onclick="toggleDark()" style="margin:5px; padding:10px 20px; font-size:16px; background:#333; color:white; border:none; border-radius:5px; cursor:pointer;">
+        🌙 Dark Mode
+      </button>
+      <button onclick="toggleTraffic()" style="margin:5px; padding:10px 20px; font-size:16px; background:#d35400; color:white; border:none; border-radius:5px; cursor:pointer;">
+        🚦 Live Traffic
+      </button>
+      <button id="savedRoutesBtn" onclick="showSavedRoutes()" style="background: #6f42c1; display: none;">
+        📋 Saved Routes
+      </button>
+    </div>
   </div>
+  
+  <!-- Route Info Panel -->
+  <div id="routeInfo" class="route-info"></div>
+  
   <div id="map"></div>
+  
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="hideAuthModal()">&times;</span>
+      <h2 id="authTitle">Login</h2>
+      <input type="hidden" id="authMode" value="login">
+      <form onsubmit="handleAuthSubmit(event)">
+        <div id="nameField">
+          <input type="text" id="authName" placeholder="Full Name" required>
+        </div>
+        <input type="email" id="authEmail" placeholder="Email" required>
+        <input type="password" id="authPassword" placeholder="Password (min 6 characters)" required minlength="6">
+        <div id="authError" class="error-msg"></div>
+        <button type="submit" id="authSubmitBtn">Login</button>
+      </form>
+      <div id="authToggleText" class="auth-toggle"></div>
+    </div>
+  </div>
+  
+  <!-- Save Route Modal -->
+  <div id="saveRouteModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="hideSaveRouteModal()">&times;</span>
+      <h2>Save Route</h2>
+      <form onsubmit="handleSaveRoute(event)">
+        <input type="text" id="routeName" placeholder="Route Name (e.g. Daily Commute)" required>
+        <input type="text" id="routeTags" placeholder="Tags (comma separated)">
+        <textarea id="routeNotes" placeholder="Notes (optional)" rows="3" style="width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc;"></textarea>
+        <button type="submit">💾 Save</button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Saved Routes Modal -->
+  <div id="savedRoutesModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <span class="close-btn" onclick="hideSavedRoutesModal()">&times;</span>
+      <h2>My Saved Routes</h2>
+      <div id="savedRoutesList" class="saved-routes-list">
+        <p style="text-align: center; color: #666;">Loading...</p>
+      </div>
+    </div>
+  </div>
 
+  <!-- Include API and Auth scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  
   <script>
     let map, directionsService, directionsRenderer;
+    let currentRoute = null; // Store current route data
 
     function initMap() {
       directionsService = new google.maps.DirectionsService();
@@ -81,11 +200,203 @@
       directionsService.route(request, (result, status) => {
         if (status === 'OK') {
           directionsRenderer.setDirections(result);
+          
+          // Store current route data
+          const route = result.routes[0];
+          const leg = route.legs[0];
+          currentRoute = {
+            origin: {
+              address: leg.start_address,
+              lat: leg.start_location.lat(),
+              lng: leg.start_location.lng()
+            },
+            destination: {
+              address: leg.end_address,
+              lat: leg.end_location.lat(),
+              lng: leg.end_location.lng()
+            },
+            distance: {
+              text: leg.distance.text,
+              value: leg.distance.value
+            },
+            duration: {
+              text: leg.duration.text,
+              value: leg.duration.value
+            },
+            routeData: result
+          };
+          
+          // Show route info
+          displayRouteInfo(currentRoute);
         } else {
           alert("Route failed: " + status);
         }
       });
     }
+    
+    function displayRouteInfo(route) {
+      const info = document.getElementById('routeInfo');
+      info.innerHTML = `
+        <h3>📍 Route Details</h3>
+        <p><strong>Distance:</strong> ${route.distance.text}</p>
+        <p><strong>Duration:</strong> ${route.duration.text}</p>
+        <p><strong>From:</strong> ${route.origin.address}</p>
+        <p><strong>To:</strong> ${route.destination.address}</p>
+      `;
+      info.style.display = 'block';
+    }
+    
+    function loadRoute(routeData) {
+      document.getElementById('start').value = routeData.origin.address;
+      document.getElementById('end').value = routeData.destination.address;
+      
+      const request = {
+        origin: new google.maps.LatLng(routeData.origin.lat, routeData.origin.lng),
+        destination: new google.maps.LatLng(routeData.destination.lat, routeData.destination.lng),
+        travelMode: routeData.travelMode || 'DRIVING'
+      };
+      
+      directionsService.route(request, (result, status) => {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(result);
+          currentRoute = routeData;
+          displayRouteInfo(routeData);
+        }
+      });
+    }
+    
+    // Save Route Modal Functions
+    function showSaveRouteModal() {
+      if (!currentRoute) {
+        return alert('Please plan a route first!');
+      }
+      if (!authAPI.isLoggedIn()) {
+        return showAuthModal('login');
+      }
+      document.getElementById('saveRouteModal').style.display = 'flex';
+    }
+    
+    function hideSaveRouteModal() {
+      document.getElementById('saveRouteModal').style.display = 'none';
+      document.getElementById('routeName').value = '';
+      document.getElementById('routeTags').value = '';
+      document.getElementById('routeNotes').value = '';
+    }
+    
+    async function handleSaveRoute(e) {
+      e.preventDefault();
+      
+      const name = document.getElementById('routeName').value;
+      const tags = document.getElementById('routeTags').value.split(',').map(t => t.trim()).filter(t => t);
+      const notes = document.getElementById('routeNotes').value;
+      
+      try {
+        const result = await routesAPI.save({
+          name,
+          ...currentRoute,
+          tags,
+          notes
+        });
+        
+        hideSaveRouteModal();
+        alert('✅ Route saved successfully!');
+      } catch (error) {
+        alert('Failed to save route: ' + error.message);
+      }
+    }
+    
+    // Saved Routes Functions
+    async function showSavedRoutes() {
+      if (!authAPI.isLoggedIn()) {
+        return showAuthModal('login');
+      }
+      
+      document.getElementById('savedRoutesModal').style.display = 'flex';
+      document.getElementById('savedRoutesList').innerHTML = '<p style="text-align: center;">Loading...</p>';
+      
+      try {
+        const result = await routesAPI.getAll();
+        displaySavedRoutes(result.routes);
+      } catch (error) {
+        document.getElementById('savedRoutesList').innerHTML = '<p style="text-align: center; color: #dc3545;">Failed to load routes</p>';
+      }
+    }
+    
+    function displaySavedRoutes(routes) {
+      const list = document.getElementById('savedRoutesList');
+      
+      if (routes.length === 0) {
+        list.innerHTML = '<p style="text-align: center; color: #666;">No saved routes yet. Plan and save your first route!</p>';
+        return;
+      }
+      
+      list.innerHTML = routes.map(route => `
+        <div class="route-item" onclick="loadSavedRoute('${route._id}')">
+          <h4>${route.name}</h4>
+          <p><strong>From:</strong> ${route.origin.address}</p>
+          <p><strong>To:</strong> ${route.destination.address}</p>
+          <p><strong>Distance:</strong> ${route.distance.text} | <strong>Duration:</strong> ${route.duration.text}</p>
+          ${route.tags && route.tags.length > 0 ? `<p>🏷️ ${route.tags.join(', ')}</p>` : ''}
+          <button onclick="deleteRoute('${route._id}', event)" style="background: #dc3545; padding: 5px 10px; font-size: 14px;">Delete</button>
+          <button onclick="shareRoute('${route._id}', event)" style="background: #17a2b8; padding: 5px 10px; font-size: 14px;">Share</button>
+        </div>
+      `).join('');
+    }
+    
+    async function loadSavedRoute(routeId) {
+      try {
+        const result = await routesAPI.getById(routeId);
+        loadRoute(result.route);
+        hideSavedRoutesModal();
+      } catch (error) {
+        alert('Failed to load route: ' + error.message);
+      }
+    }
+    
+    async function deleteRoute(routeId, event) {
+      event.stopPropagation();
+      
+      if (!confirm('Are you sure you want to delete this route?')) {
+        return;
+      }
+      
+      try {
+        await routesAPI.delete(routeId);
+        showSavedRoutes(); // Refresh list
+      } catch (error) {
+        alert('Failed to delete route: ' + error.message);
+      }
+    }
+    
+    async function shareRoute(routeId, event) {
+      event.stopPropagation();
+      
+      try {
+        const result = await routesAPI.share(routeId);
+        prompt('Share this link:', result.shareUrl);
+      } catch (error) {
+        alert('Failed to generate share link: ' + error.message);
+      }
+    }
+    
+    function hideSavedRoutesModal() {
+      document.getElementById('savedRoutesModal').style.display = 'none';
+    }
+    
+    // User Dropdown
+    function toggleUserDropdown() {
+      const dropdown = document.getElementById('userDropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const userMenu = document.getElementById('userMenu');
+      const dropdown = document.getElementById('userDropdown');
+      if (!userMenu.contains(event.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
   </script>
 
   <script async defer
