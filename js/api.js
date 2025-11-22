@@ -1,5 +1,5 @@
 // API Configuration
-const API_URL = 'http://localhost:5000/api'; // Change to Railway URL when deployed
+const API_URL = 'https://myroute-production.up.railway.app/api'; // Railway backend URL
 
 // Get token from localStorage
 const getToken = () => localStorage.getItem('token');
